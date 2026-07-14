@@ -42,20 +42,46 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 DB_CONFIG = dict(
-    host="localhost",
+    host="tokaido.proxy.rlwy.net",
     user="root",
-    password="",
-    database="karyawan_pln"
+    password="rLsbQEzojiyAdwhDWjOKMkMuwjmgzLxo",
+    database="railway",
+    port=45830,
+    ssl_disabled=False
 )
 
 TABLE_NAME = "karyawan_pln"
 
 # Daftar semua database yang boleh diakses chatbot.
 # Tinggal tambah nama database di sini kalau mau nambah database lain lagi.
-DATABASES = ["karyawan_pln", "classicmodels"]
+DATABASES = ["railway"]
 
 OLLAMA_URL = "http://localhost:11434/api/generate"
 MODEL_NAME = "qwen2.5:7b"
+
+
+# =========================
+# MOCK DATA (FALLBACK JIKA DB TIDAK TERSEDIA)
+# =========================
+def get_mock_karyawan_data():
+    """Dummy data untuk testing saat database tidak available."""
+    return [
+        {"NIP": "1001", "Nama": "Budi Santoso", "Jenis_Kelamin": "L", "Tanggal_Lahir": "1985-03-15", "Divisi": "IT", "Jabatan": "Manager", "Tanggal_Masuk": "2015-06-01", "Status_Pegawai": "Tetap", "Email": "budi@pln.id"},
+        {"NIP": "1002", "Nama": "Siti Nurhaliza", "Jenis_Kelamin": "P", "Tanggal_Lahir": "1990-07-22", "Divisi": "Finance", "Jabatan": "Supervisor", "Tanggal_Masuk": "2018-01-15", "Status_Pegawai": "Tetap", "Email": "siti@pln.id"},
+        {"NIP": "1003", "Nama": "Ahmad Rizki", "Jenis_Kelamin": "L", "Tanggal_Lahir": "1988-11-10", "Divisi": "HR", "Jabatan": "Staff", "Tanggal_Masuk": "2016-03-20", "Status_Pegawai": "Tetap", "Email": "ahmad@pln.id"},
+        {"NIP": "1004", "Nama": "Rina Wijaya", "Jenis_Kelamin": "P", "Tanggal_Lahir": "1992-05-08", "Divisi": "IT", "Jabatan": "Developer", "Tanggal_Masuk": "2020-02-10", "Status_Pegawai": "Tetap", "Email": "rina@pln.id"},
+        {"NIP": "1005", "Nama": "Hendra Gunawan", "Jenis_Kelamin": "L", "Tanggal_Lahir": "1987-09-14", "Divisi": "Finance", "Jabatan": "Manager", "Tanggal_Masuk": "2017-04-05", "Status_Pegawai": "Tetap", "Email": "hendra@pln.id"},
+    ]
+
+def get_mock_classicmodels_data():
+    """Dummy data customer untuk testing saat database tidak available."""
+    return [
+        {"customerNumber": 101, "customerName": "Atelier Graphique", "city": "Paris", "country": "France", "creditLimit": 21000, "salesRepEmployeeNumber": 1370},
+        {"customerNumber": 112, "customerName": "Signal Gift Stores", "city": "Las Vegas", "country": "USA", "creditLimit": 71800, "salesRepEmployeeNumber": 1166},
+        {"customerNumber": 114, "customerName": "Australian Collectors, Co.", "city": "Melbourne", "country": "Australia", "creditLimit": 117300, "salesRepEmployeeNumber": 1166},
+        {"customerNumber": 119, "customerName": "La Rochelle Gifts", "city": "La Rochelle", "country": "France", "creditLimit": 118400, "salesRepEmployeeNumber": 1370},
+        {"customerNumber": 121, "customerName": "Baane Inc.", "city": "Stavern", "country": "Norway", "creditLimit": 81700, "salesRepEmployeeNumber": 1504},
+    ]
 
 
 @st.cache_resource
@@ -132,19 +158,23 @@ def normalize_row_keys(row):
 
 
 def get_all_data():
-    conn = get_connection()
-    cursor = conn.cursor(dictionary=True)
-    cursor.execute(f"SELECT * FROM {TABLE_NAME}")
-    data = cursor.fetchall()
-    cursor.close()
-    conn.close()
+    try:
+        conn = get_connection()
+        cursor = conn.cursor(dictionary=True)
+        cursor.execute(f"SELECT * FROM {TABLE_NAME}")
+        data = cursor.fetchall()
+        cursor.close()
+        conn.close()
 
-    data = [normalize_row_keys(r) for r in data]
+        data = [normalize_row_keys(r) for r in data]
 
-    # Buang baris "hantu" kalau header CSV ikut ke-import sebagai data
-    data = [r for r in data if r.get("NIP") != "NIP"]
+        # Buang baris "hantu" kalau header CSV ikut ke-import sebagai data
+        data = [r for r in data if r.get("NIP") != "NIP"]
 
-    return data
+        return data, False  # (data, is_mock)
+    except Exception as e:
+        st.warning(f"⚠️ Database tidak tersedia. Menampilkan data sample untuk demo.")
+        return get_mock_karyawan_data(), True  # (mock_data, is_mock)
 
 
 def run_sql(query):
@@ -160,17 +190,21 @@ def run_sql(query):
 
 def get_classicmodels_data():
     """Ambil data customer dari classicmodels buat dashboard."""
-    conn = get_connection("classicmodels")
-    cursor = conn.cursor(dictionary=True)
-    cursor.execute("""
-        SELECT customerNumber, customerName, city, country,
-               creditLimit, salesRepEmployeeNumber
-        FROM customers
-    """)
-    data = cursor.fetchall()
-    cursor.close()
-    conn.close()
-    return data
+    try:
+        conn = get_connection("classicmodels")
+        cursor = conn.cursor(dictionary=True)
+        cursor.execute("""
+            SELECT customerNumber, customerName, city, country,
+                   creditLimit, salesRepEmployeeNumber
+            FROM customers
+        """)
+        data = cursor.fetchall()
+        cursor.close()
+        conn.close()
+        return data, False  # (data, is_mock)
+    except Exception as e:
+        st.warning(f"⚠️ Database tidak tersedia. Menampilkan data sample untuk demo.")
+        return get_mock_classicmodels_data(), True  # (mock_data, is_mock)
 
 
 # =========================
@@ -356,15 +390,14 @@ with st.sidebar:
 # =========================
 # LOAD DATA SESUAI DATABASE YANG DIPILIH
 # =========================
-try:
-    if db_choice == "karyawan_pln":
-        data = get_all_data()
-    else:
-        data = get_classicmodels_data()
-    df = pd.DataFrame(data)
-except Exception as e:
-    st.error(f"Gagal koneksi database: {e}")
-    st.stop()
+# LOAD DATA SESUAI DATABASE YANG DIPILIH
+# =========================
+if db_choice == "karyawan_pln":
+    data, is_mock = get_all_data()
+else:
+    data, is_mock = get_classicmodels_data()
+
+df = pd.DataFrame(data)
 
 # =========================
 # SIDEBAR: FILTER YANG NYESUAIN DATABASE
@@ -470,6 +503,18 @@ st.divider()
 # =========================
 st.subheader("AI PLN Assistant")
 
+# Check jika Ollama tersedia
+ollama_available = True
+try:
+    requests.post(
+        OLLAMA_URL,
+        json={"model": MODEL_NAME, "prompt": "test", "stream": False},
+        timeout=5
+    )
+except:
+    ollama_available = False
+    st.warning("⚠️ Model AI (Ollama) tidak tersedia di Streamlit Cloud. Chatbot sedang disabled.")
+
 if "messages" not in st.session_state:
     st.session_state.messages = []
 
@@ -486,9 +531,9 @@ chat_placeholder = (
     if db_choice == "karyawan_pln"
     else "Tanyakan sesuatu tentang data customer/order..."
 )
-question = st.chat_input(chat_placeholder)
+question = st.chat_input(chat_placeholder, disabled=not ollama_available)
 
-if question:
+if question and ollama_available:
     st.session_state.messages.append({"role": "user", "content": question})
     with st.chat_message("user"):
         st.write(question)
