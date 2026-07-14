@@ -10,8 +10,36 @@ import re
 st.set_page_config(
     page_title="AI PLN Dashboard",
     page_icon="⚡",
-    layout="wide"
+    layout="centered",
+    initial_sidebar_state="collapsed"
 )
+
+# Custom CSS untuk mobile responsiveness
+st.markdown("""
+<style>
+    /* Atur padding dan lebar maksimal untuk mobile */
+    .main {
+        max-width: 100%;
+        padding: 1rem;
+    }
+    
+    /* Buat kolom lebih responsive di mobile */
+    @media (max-width: 640px) {
+        .block-container {
+            padding-left: 0.5rem;
+            padding-right: 0.5rem;
+        }
+        [data-testid="stMetricContainer"] {
+            min-width: calc(100% - 1rem);
+        }
+    }
+    
+    /* Tabel lebih readable di mobile */
+    [data-testid="dataFrameContainer"] {
+        font-size: 0.85rem;
+    }
+</style>
+""", unsafe_allow_html=True)
 
 DB_CONFIG = dict(
     host="localhost",
