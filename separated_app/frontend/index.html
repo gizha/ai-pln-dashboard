@@ -1,0 +1,459 @@
+<!DOCTYPE html>
+<html lang="id">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>PLN DataHub AI</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Chart.js CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body class="min-h-screen flex flex-col font-sans">
+
+    <!-- Header / Top Navigation Bar -->
+    <header class="sticky top-0 z-50 w-full border-b backdrop-blur-md transition-all duration-300 main-navbar">
+        <div class="max-w-6xl mx-auto px-6 py-4 flex items-center justify-between">
+            <!-- Brand Logo & Name -->
+            <div class="flex items-center space-x-3">
+                <img src="pln_logo.png" alt="Logo PLN" class="w-10 h-10 object-contain flex-shrink-0">
+                <span class="text-xl font-bold dark-theme-logo">PLN DataHub AI</span>
+                <span class="text-xs px-2 py-0.5 rounded version-badge font-semibold">v3.0</span>
+            </div>
+
+            <!-- Center Navigation Links -->
+            <nav class="hidden md:flex items-center space-x-8">
+                <a href="#section-about" class="nav-link font-semibold text-sm transition-all duration-200" data-i18n="nav_about">About</a>
+                <a href="#section-dashboard" class="nav-link font-semibold text-sm transition-all duration-200" data-i18n="nav_dashboard">Dashboard</a>
+                <a href="#section-ask-pln" class="nav-link font-semibold text-sm transition-all duration-200" data-i18n="nav_ask">Ask PLN</a>
+            </nav>
+
+            <!-- Right Controls (Language & Theme Toggles, Mobile Menu Btn) -->
+            <div class="flex items-center space-x-3">
+                <button id="lang-toggle-btn" class="px-3 py-1.5 rounded-lg text-xs font-bold version-badge transition-all focus:outline-none shadow-sm tracking-wider">
+                    English
+                </button>
+                <button id="theme-toggle-btn" class="px-3 py-1.5 rounded-lg text-xs font-bold version-badge transition-all focus:outline-none shadow-sm tracking-wider">
+                    <span id="theme-toggle-text">Light Mode</span>
+                </button>
+                
+                <!-- Mobile Navigation Button -->
+                <button id="mobile-menu-btn" class="md:hidden p-2 rounded-lg version-badge focus:outline-none">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16m-7 6h7"></path>
+                    </svg>
+                </button>
+            </div>
+        </div>
+        
+        <!-- Mobile Dropdown Menu -->
+        <div id="mobile-menu" class="hidden md:hidden border-t py-4 px-6 space-y-4 bg-[#0f172a]/95 backdrop-blur-md border-slate-800">
+            <a href="#section-about" class="block nav-link-mobile font-semibold text-sm py-2" data-i18n="nav_about">About</a>
+            <a href="#section-dashboard" class="block nav-link-mobile font-semibold text-sm py-2" data-i18n="nav_dashboard">Dashboard</a>
+            <a href="#section-ask-pln" class="block nav-link-mobile font-semibold text-sm py-2" data-i18n="nav_ask">Ask PLN</a>
+            <div class="flex items-center space-x-2 pt-3 border-t border-slate-800">
+                <button id="lang-toggle-btn-mobile" class="flex-1 px-3 py-2 text-xs font-bold version-badge transition-all focus:outline-none shadow-sm tracking-wider text-center">
+                    English
+                </button>
+                <button id="theme-toggle-btn-mobile" class="flex-1 px-3 py-2 text-xs font-bold version-badge transition-all focus:outline-none shadow-sm tracking-wider text-center">
+                    <span id="theme-toggle-text-mobile">Light Mode</span>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Content Container -->
+    <main class="flex-1 w-full flex flex-col">
+
+        <!-- 1. ABOUT SECTION with Carousel -->
+        <section id="section-about" class="w-full relative section-padding">
+            <div class="carousel-container relative overflow-hidden w-full h-[320px] md:h-[450px]">
+                <!-- Slide List -->
+                <div class="carousel-slides flex transition-transform duration-700 ease-in-out h-full w-full">
+                    <!-- Slide 1 -->
+                    <div class="carousel-slide min-w-full h-full relative flex-shrink-0">
+                        <img src="pln_about_1.png" alt="PLN Smart Grid" class="w-full h-full object-cover">
+                        <div class="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-900/40 to-transparent flex flex-col justify-end p-8 md:p-16">
+                            <h2 class="text-2xl md:text-4xl font-extrabold text-white mb-2 max-w-2xl leading-tight">PLN DataHub AI Assistant</h2>
+                            <p class="text-sm md:text-base text-slate-200 max-w-xl">Pusat analisis data cerdas terintegrasi untuk memantau informasi operasional, data karyawan, absensi, dan transaksi secara instan.</p>
+                        </div>
+                    </div>
+                    <!-- Slide 2 -->
+                    <div class="carousel-slide min-w-full h-full relative flex-shrink-0">
+                        <img src="pln_about_2.png" alt="Renewable Energy" class="w-full h-full object-cover">
+                        <div class="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-900/40 to-transparent flex flex-col justify-end p-8 md:p-16">
+                            <h2 class="text-2xl md:text-4xl font-extrabold text-white mb-2 max-w-2xl leading-tight">Monitoring Kehadiran & Absensi</h2>
+                            <p class="text-sm md:text-base text-slate-200 max-w-xl">Kelola log kehadiran karyawan PLN secara real-time dengan grafik tren harian dan ringkasan KPI kehadiran yang dinamis.</p>
+                        </div>
+                    </div>
+                    <!-- Slide 3 -->
+                    <div class="carousel-slide min-w-full h-full relative flex-shrink-0">
+                        <img src="pln_about_3.png" alt="Smart Grid & Jaringan Andal" class="w-full h-full object-cover">
+                        <div class="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-900/40 to-transparent flex flex-col justify-end p-8 md:p-16">
+                            <h2 class="text-2xl md:text-4xl font-extrabold text-white mb-2 max-w-2xl leading-tight">Analisis Data Karyawan PLN</h2>
+                            <p class="text-sm md:text-base text-slate-200 max-w-xl">Pantau statistik demografis, distribusi divisi, struktur jabatan, dan status kepegawaian internal secara terpusat.</p>
+                        </div>
+                    </div>
+                    <!-- Slide 4 -->
+                    <div class="carousel-slide min-w-full h-full relative flex-shrink-0">
+                        <img src="pln_about_4.png" alt="Customer Service" class="w-full h-full object-cover">
+                        <div class="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-900/40 to-transparent flex flex-col justify-end p-8 md:p-16">
+                            <h2 class="text-2xl md:text-4xl font-extrabold text-white mb-2 max-w-2xl leading-tight">Integrasi Database Relasional</h2>
+                            <p class="text-sm md:text-base text-slate-200 max-w-xl">Mendukung kueri antar-tabel (SQL JOIN) untuk menghubungkan data profil karyawan dengan catatan absensi harian.</p>
+                        </div>
+                    </div>
+                    <!-- Slide 5 -->
+                    <div class="carousel-slide min-w-full h-full relative flex-shrink-0">
+                        <img src="pln_about_5.png" alt="Electrification" class="w-full h-full object-cover">
+                        <div class="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-900/40 to-transparent flex flex-col justify-end p-8 md:p-16">
+                            <h2 class="text-2xl md:text-4xl font-extrabold text-white mb-2 max-w-2xl leading-tight">Chatbot SQL Cerdas (Ask PLN)</h2>
+                            <p class="text-sm md:text-base text-slate-200 max-w-xl">Tanyakan informasi database dalam bahasa alami sehari-hari, dan AI asisten akan otomatis menerjemahkannya menjadi query SQL.</p>
+                        </div>
+                    </div>
+                    <!-- Slide 6 -->
+                    <div class="carousel-slide min-w-full h-full relative flex-shrink-0">
+                        <img src="pln_about_6.png" alt="Infrastructure" class="w-full h-full object-cover">
+                        <div class="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-900/40 to-transparent flex flex-col justify-end p-8 md:p-16">
+                            <h2 class="text-2xl md:text-4xl font-extrabold text-white mb-2 max-w-2xl leading-tight">Failover Offline dengan Ollama</h2>
+                            <p class="text-sm md:text-base text-slate-200 max-w-xl">Ketahanan sistem tingkat tinggi yang otomatis beralih ke model lokal Ollama saat koneksi cloud terhambat.</p>
+                        </div>
+                    </div>
+                    <!-- Slide 7 -->
+                    <div class="carousel-slide min-w-full h-full relative flex-shrink-0">
+                        <img src="pln_about_7.png" alt="EV Ecosystem" class="w-full h-full object-cover">
+                        <div class="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-900/40 to-transparent flex flex-col justify-end p-8 md:p-16">
+                            <h2 class="text-2xl md:text-4xl font-extrabold text-white mb-2 max-w-2xl leading-tight">Analisis Bisnis & Transaksi</h2>
+                            <p class="text-sm md:text-base text-slate-200 max-w-xl">Integrasi data transaksi pembayaran, log pesanan, profil pelanggan, dan analisis credit limit dari classicmodels.</p>
+                        </div>
+                    </div>
+                    <!-- Slide 8 -->
+                    <div class="carousel-slide min-w-full h-full relative flex-shrink-0">
+                        <img src="pln_about_8.png" alt="Reliable Power" class="w-full h-full object-cover">
+                        <div class="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-900/40 to-transparent flex flex-col justify-end p-8 md:p-16">
+                            <h2 class="text-2xl md:text-4xl font-extrabold text-white mb-2 max-w-2xl leading-tight">Ekspor Data & Grafik Praktis</h2>
+                            <p class="text-sm md:text-base text-slate-200 max-w-xl">Salin tabel data ke clipboard dalam format Excel, serta simpan diagram visual analisis sebagai file gambar secara instan.</p>
+                        </div>
+                    </div>
+                    <!-- Slide 9 -->
+                    <div class="carousel-slide min-w-full h-full relative flex-shrink-0">
+                        <img src="pln_about_9.png" alt="Clean Energy Innovation" class="w-full h-full object-cover">
+                        <div class="absolute inset-0 bg-gradient-to-t from-slate-950 via-slate-900/40 to-transparent flex flex-col justify-end p-8 md:p-16">
+                            <h2 class="text-2xl md:text-4xl font-extrabold text-white mb-2 max-w-2xl leading-tight">Lokalisasi Dwibahasa (ID/EN)</h2>
+                            <p class="text-sm md:text-base text-slate-200 max-w-xl">Beralih bahasa antarmuka, statistik dashboard, dan diagram analitik secara cepat menggunakan tombol toggle bahasa.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Slider Arrows -->
+                <button id="carousel-prev-btn" class="absolute left-4 top-1/2 -translate-y-1/2 w-10 h-10 md:w-12 md:h-12 rounded-full flex items-center justify-center bg-black/35 hover:bg-black/60 text-white transition-all focus:outline-none z-10">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
+                    </svg>
+                </button>
+                <button id="carousel-next-btn" class="absolute right-4 top-1/2 -translate-y-1/2 w-10 h-10 md:w-12 md:h-12 rounded-full flex items-center justify-center bg-black/35 hover:bg-black/60 text-white transition-all focus:outline-none z-10">
+                    <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+                    </svg>
+                </button>
+
+                <!-- Slider Dots indicators -->
+                <div class="absolute bottom-4 left-1/2 -translate-x-1/2 flex space-x-2 z-10" id="carousel-dots-container">
+                    <button class="w-2.5 h-2.5 rounded-full bg-white/50 transition-all hover:bg-white carousel-dot carousel-dot-active" data-slide="0"></button>
+                    <button class="w-2.5 h-2.5 rounded-full bg-white/30 transition-all hover:bg-white carousel-dot" data-slide="1"></button>
+                    <button class="w-2.5 h-2.5 rounded-full bg-white/30 transition-all hover:bg-white carousel-dot" data-slide="2"></button>
+                    <button class="w-2.5 h-2.5 rounded-full bg-white/30 transition-all hover:bg-white carousel-dot" data-slide="3"></button>
+                    <button class="w-2.5 h-2.5 rounded-full bg-white/30 transition-all hover:bg-white carousel-dot" data-slide="4"></button>
+                    <button class="w-2.5 h-2.5 rounded-full bg-white/30 transition-all hover:bg-white carousel-dot" data-slide="5"></button>
+                    <button class="w-2.5 h-2.5 rounded-full bg-white/30 transition-all hover:bg-white carousel-dot" data-slide="6"></button>
+                    <button class="w-2.5 h-2.5 rounded-full bg-white/30 transition-all hover:bg-white carousel-dot" data-slide="7"></button>
+                    <button class="w-2.5 h-2.5 rounded-full bg-white/30 transition-all hover:bg-white carousel-dot" data-slide="8"></button>
+                </div>
+            </div>
+        </section>
+
+        <!-- 2. DASHBOARD SECTION -->
+        <section id="section-dashboard" class="w-full max-w-6xl mx-auto px-6 py-12 md:py-16 flex flex-col space-y-8">
+            <!-- Section Header -->
+            <div class="border-b pb-4 flex flex-col sm:flex-row sm:items-center sm:justify-between" style="border-bottom-color: var(--card-border);">
+                <div>
+                    <h2 class="text-2xl md:text-3xl font-extrabold tracking-tight title-gradient" data-i18n="dashboard_title">Dashboard Distribusi Data</h2>
+                    <p class="text-sm text-slate-400 mt-1" id="subtitle-desc" data-i18n="dashboard_subtitle">Dashboard Tabel & Analisis Statistik</p>
+                </div>
+                <!-- Alert status/notif -->
+                <div id="data-status-alert" class="px-4 py-2.5 rounded-xl text-xs mt-3 sm:mt-0 flex items-center space-x-2 shadow-sm">
+                    <span class="inline-block w-2 h-2 rounded-full animate-ping" style="background-color: var(--chat-ai-text);"></span>
+                    <span id="data-status-text" data-i18n="alert_db_connecting">Menghubungkan ke database...</span>
+                </div>
+            </div>
+
+            <!-- Control Bar Grid (DB Select) -->
+            <div class="flex flex-col md:flex-row md:items-center justify-between gap-6 p-6 rounded-2xl card-section shadow-lg">
+                <!-- Select Database Table -->
+                <div class="flex-1 max-w-md">
+                    <label class="sidebar-label block text-xs font-semibold uppercase tracking-wider mb-2" data-i18n="label_db_select">Lihat Database</label>
+                    <select id="db-select" class="w-full rounded-lg px-3 py-2.5 focus:outline-none focus:border-[#00A0E9] text-sm transition-all">
+                        <option value="" data-i18n="option_loading">Memuat daftar tabel...</option>
+                    </select>
+                </div>
+            </div>
+
+            <!-- KPI Cards Grid -->
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6" id="kpi-grid">
+                <!-- Card 1 -->
+                <div class="metric-card-custom shadow-md">
+                    <div class="metric-accent" style="background: linear-gradient(90deg, #00f2fe, #4facfe);"></div>
+                    <div class="metric-title" id="kpi-title-1" data-i18n="kpi_title_1">Total Karyawan</div>
+                    <div class="metric-value font-bold text-transparent bg-clip-text bg-gradient-to-r from-[#00f2fe] to-[#4facfe]" id="kpi-value-1">-</div>
+                </div>
+                <!-- Card 2 -->
+                <div class="metric-card-custom shadow-md">
+                    <div class="metric-accent" style="background: linear-gradient(90deg, #f59e0b, #FFE600);"></div>
+                    <div class="metric-title" id="kpi-title-2" data-i18n="kpi_title_2">Jumlah Divisi</div>
+                    <div class="metric-value font-bold text-transparent bg-clip-text bg-gradient-to-r from-[#f59e0b] to-[#FFE600]" id="kpi-value-2">-</div>
+                </div>
+                <!-- Card 3 -->
+                <div class="metric-card-custom shadow-md">
+                    <div class="metric-accent" style="background: linear-gradient(90deg, #ED1C24, #f43f5e);"></div>
+                    <div class="metric-title" id="kpi-title-3" data-i18n="kpi_title_3">Jumlah Jabatan</div>
+                    <div class="metric-value font-bold text-transparent bg-clip-text bg-gradient-to-r from-[#ED1C24] to-[#f43f5e]" id="kpi-value-3">-</div>
+                </div>
+            </div>
+
+            <!-- Charts Container -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-6" id="charts-container">
+                <div class="card-section p-6 shadow-xl flex flex-col h-[380px]">
+                    <div class="flex items-center justify-between mb-4">
+                        <h3 class="text-sm font-bold uppercase tracking-wider sidebar-label" id="chart-title-1">Distribusi Divisi</h3>
+                        <button type="button" class="copy-btn" onclick="downloadChart('chart-canvas-1', 'distribusi_divisi.png')" data-i18n="btn_save_chart">Simpan Grafik</button>
+                    </div>
+                    <div class="flex-1 min-h-0 relative">
+                        <canvas id="chart-canvas-1"></canvas>
+                    </div>
+                </div>
+                <div class="card-section p-6 shadow-xl flex flex-col h-[380px]">
+                    <div class="flex items-center justify-between mb-4">
+                        <h3 class="text-sm font-bold uppercase tracking-wider sidebar-label" id="chart-title-2">Distribusi Gender</h3>
+                        <button type="button" class="copy-btn" onclick="downloadChart('chart-canvas-2', 'distribusi_gender.png')" data-i18n="btn_save_chart">Simpan Grafik</button>
+                    </div>
+                    <div class="flex-1 min-h-0 relative">
+                        <canvas id="chart-canvas-2"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Data Table Section -->
+            <div class="card-section p-6 shadow-xl">
+                <div class="flex items-center justify-between mb-4">
+                    <h2 class="text-lg font-bold" id="table-title" data-i18n="table_title">Data Karyawan</h2>
+                    <button id="download-csv-btn" class="px-4 py-2 bg-[#00A0E9] hover:bg-[#0077C0] text-white rounded-lg text-xs font-semibold transition-all shadow-md flex items-center space-x-1.5">
+                        <span data-i18n="btn_download_csv">Unduh CSV</span>
+                    </button>
+                </div>
+                <div class="overflow-x-auto rounded-lg border" style="border-color: var(--card-border);">
+                    <table class="w-full text-left border-collapse" id="data-table">
+                        <thead class="table-header text-xs font-semibold uppercase tracking-wider">
+                            <tr id="table-headers">
+                                <th class="p-4">NIP</th>
+                                <th class="p-4">Nama</th>
+                                <th class="p-4">Divisi</th>
+                                <th class="p-4">Jabatan</th>
+                                <th class="p-4">Status</th>
+                            </tr>
+                        </thead>
+                        <tbody class="text-sm divide-y table-body" id="table-body">
+                            <tr>
+                                <td colspan="5" class="p-8 text-center text-slate-500">Memuat data...</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Pagination Controls -->
+                <div class="flex flex-col sm:flex-row items-center justify-between border-t pt-4 mt-4 gap-4 text-sm" style="border-top-color: var(--card-border);">
+                    <div id="pagination-info">
+                        Menampilkan <span class="font-semibold" id="page-start">0</span> - <span class="font-semibold" id="page-end">0</span> dari <span class="font-semibold" id="total-rows">0</span> baris
+                    </div>
+                    <div class="flex space-x-2">
+                        <button id="prev-page-btn" class="px-4 py-2 rounded-lg version-badge disabled:opacity-40 disabled:cursor-not-allowed transition-all text-xs font-semibold transform active:scale-95 border" style="border-color: var(--card-border);" data-i18n="btn_prev">
+                            Sebelumnya
+                        </button>
+                        <button id="next-page-btn" class="px-4 py-2 rounded-lg version-badge disabled:opacity-40 disabled:cursor-not-allowed transition-all text-xs font-semibold transform active:scale-95 border" style="border-color: var(--card-border);" data-i18n="btn_next">
+                            Selanjutnya
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 3. ASK PLN SECTION (Chatbot) -->
+        <section id="section-ask-pln" class="w-full max-w-6xl mx-auto px-6 py-12 md:py-16 grid grid-cols-1 lg:grid-cols-4 gap-6">
+            <!-- Sidebar: Riwayat Pertanyaan -->
+            <div class="lg:col-span-1 card-section p-4 flex flex-col h-[200px] lg:h-[550px] shadow-xl" style="background-color: var(--card-bg);">
+                <div class="flex items-center justify-between border-b pb-3 mb-3" style="border-bottom-color: var(--card-border);">
+                    <h3 class="text-xs font-bold uppercase tracking-wider flex items-center space-x-1.5 sidebar-title-text">
+                        <span data-i18n="sidebar_history_title">Riwayat Tanya</span>
+                    </h3>
+                    <button id="clear-history-btn" class="clear-history-btn px-2 py-1 text-[10px] font-semibold rounded border transition-all" data-i18n="btn_clear_history">
+                        Hapus
+                    </button>
+                </div>
+                <!-- Scrollable list of past queries -->
+                <div id="history-queries-list" class="flex-1 overflow-y-auto space-y-2 pr-1 scrollbar">
+                    <div class="text-slate-500 text-center py-8 text-xs" data-i18n="history_empty">Belum ada riwayat.</div>
+                </div>
+            </div>
+
+            <!-- Chatbot Box -->
+            <div id="chatbot-section" class="lg:col-span-3 card-section p-6 flex flex-col min-h-[500px] lg:min-h-[550px] shadow-xl">
+                <!-- Chat Header with Reset button inside -->
+                <div class="flex items-center justify-between mb-4 border-b pb-3" style="border-bottom-color: var(--card-border);">
+                    <h2 class="text-lg font-bold flex items-center space-x-2">
+                        <span data-i18n="chat_header">Ask PLN</span>
+                    </h2>
+                    <div class="flex items-center space-x-2">
+                        <button id="schema-modal-btn" class="px-3 py-1.5 text-xs font-semibold rounded-lg version-badge hover:bg-slate-700 transition-all border flex items-center space-x-1" style="border-color: var(--card-border);">
+                            <span class="hidden sm:inline" data-i18n="btn_schema_modal">Skema Database</span>
+                        </button>
+                        <button id="reset-chat-btn" class="px-3 py-1.5 text-xs font-semibold rounded-lg version-badge hover:bg-slate-700 transition-all border" style="border-color: var(--card-border);" data-i18n="btn_reset_chat">
+                            Reset Chat
+                        </button>
+                    </div>
+                </div>
+
+                <!-- LLM Provider & SQL Option Bar -->
+                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4 pb-3 border-b" style="border-bottom-color: var(--card-border);">
+                    <!-- Penyedia AI -->
+                    <div class="flex items-center space-x-3">
+                        <label class="text-xs font-semibold uppercase tracking-wider text-slate-400" data-i18n="label_provider">Penyedia AI (LLM):</label>
+                        <select id="ai-provider-select" class="rounded-lg px-3 py-1.5 focus:outline-none focus:border-[#00A0E9] text-xs transition-all border" style="border-color: var(--card-border); background-color: var(--input-bg);">
+                            <option value="gemini">Gemini API (Cloud)</option>
+                            <option value="ollama">Ollama (Lokal Offline)</option>
+                        </select>
+                    </div>
+                    <!-- SQL Display Checkbox -->
+                    <div class="flex items-center space-x-2">
+                        <input type="checkbox" id="show-sql-checkbox" class="w-4 h-4 rounded text-[#00A0E9] focus:ring-0 focus:ring-offset-0 version-badge">
+                        <label for="show-sql-checkbox" class="text-xs cursor-pointer select-none font-semibold text-slate-400" data-i18n="label_show_sql">Tampilkan SQL yang Dijalankan</label>
+                    </div>
+                </div>
+
+                <!-- Messages Log Box -->
+                <div id="chat-box" class="flex-1 overflow-y-auto space-y-4 pr-2 mb-4 scrollbar">
+                    <div class="flex items-start space-x-3">
+                        <div class="chat-bubble-ai p-3 rounded-2xl rounded-tl-none max-w-[80%] text-sm">
+                            Halo! Saya adalah Ask PLN, asisten cerdas Anda. Ada yang bisa saya bantu tentang data database hari ini?
+                        </div>
+                    </div>
+                    
+                    <!-- Suggestions Chips (Prompt Starters) -->
+                    <div id="chat-suggestions-container" class="flex flex-wrap gap-2.5 pt-2 pl-9">
+                        <button type="button" class="suggestion-chip px-3 py-2 text-xs rounded-xl border text-slate-300 hover:text-white transition-all bg-slate-800/40 hover:bg-[#00A0E9]/10" style="border-color: var(--card-border);" data-query="Berapa jumlah karyawan saat ini?">
+                            Berapa jumlah karyawan?
+                        </button>
+                        <button type="button" class="suggestion-chip px-3 py-2 text-xs rounded-xl border text-slate-300 hover:text-white transition-all bg-slate-800/40 hover:bg-[#00A0E9]/10" style="border-color: var(--card-border);" data-query="Tampilkan 5 produk yang paling laris">
+                            5 produk terlaris?
+                        </button>
+                        <button type="button" class="suggestion-chip px-3 py-2 text-xs rounded-xl border text-slate-300 hover:text-white transition-all bg-slate-800/40 hover:bg-[#00A0E9]/10" style="border-color: var(--card-border);" data-query="Tampilkan sebaran karyawan tiap divisi">
+                            Distribusi divisi?
+                        </button>
+                        <button type="button" class="suggestion-chip px-3 py-2 text-xs rounded-xl border text-slate-300 hover:text-white transition-all bg-slate-800/40 hover:bg-[#00A0E9]/10" style="border-color: var(--card-border);" data-query="Berapa rata-rata umur karyawan?">
+                            Rata-rata umur karyawan?
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Input Chat Form -->
+                <form id="chat-form" class="flex items-center space-x-3 border-t pt-4" style="border-top-color: var(--card-border);">
+                    <input type="text" id="chat-input" placeholder="Tanyakan sesuatu tentang database PLN..." class="flex-1 rounded-xl px-4 py-3 focus:outline-none focus:border-[#00A0E9] transition-all placeholder-slate-500 text-sm" data-i18n-placeholder="chat_input_placeholder">
+                    <button type="submit" class="bg-[#00A0E9] hover:bg-[#0077C0] text-white font-bold px-6 py-3 rounded-xl transition-all text-sm shadow-lg shadow-blue-900/10" data-i18n="btn_send">
+                        Kirim
+                    </button>
+                </form>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- Footer -->
+    <footer class="w-full text-center py-6 border-t text-xs text-slate-500 border-slate-800" style="border-top-color: var(--card-border); background-color: var(--sidebar-bg);">
+        <p data-i18n="footer_copyright">© 2026 PLN DataHub AI. Semua Hak Cipta Dilindungi.</p>
+    </footer>
+
+    <!-- Database Schema Modal -->
+    <div id="schema-modal" class="fixed inset-0 z-[100] hidden flex items-center justify-center p-4">
+        <!-- Backdrop -->
+        <div id="schema-modal-backdrop" class="absolute inset-0 bg-slate-950/60 backdrop-blur-sm"></div>
+        <!-- Modal Content -->
+        <div class="relative w-full max-w-2xl max-h-[85vh] rounded-2xl border shadow-2xl overflow-hidden flex flex-col card-section animate-in fade-in zoom-in-95 duration-200" style="border-color: var(--card-border); background-color: var(--card-bg);">
+            <!-- Header -->
+            <div class="p-5 border-b flex items-center justify-between" style="border-bottom-color: var(--card-border);">
+                <h3 class="text-lg font-bold flex items-center space-x-2 text-[#00A0E9]">
+                    <span data-i18n="schema_modal_title">Skema Struktur Database</span>
+                </h3>
+                <button id="schema-modal-close" class="text-slate-400 hover:text-white transition-colors w-8 h-8 rounded-lg hover:bg-slate-800 flex items-center justify-center font-bold">
+                    ✕
+                </button>
+            </div>
+            <!-- Body -->
+            <div class="p-6 overflow-y-auto space-y-6 text-sm scrollbar">
+                <!-- DB 1 -->
+                <div>
+                    <h4 class="font-bold text-[#00A0E9] border-b pb-1.5 mb-2" style="border-bottom-color: var(--card-border);">Database: karyawan_pln</h4>
+                    <div class="pl-2 space-y-4">
+                        <div>
+                            <span class="schema-table-badge" data-i18n="schema_table_karyawan">Tabel: karyawan_pln</span>
+                            <p class="text-xs text-slate-400 mt-1" data-i18n="schema_desc_karyawan">Menyimpan data internal karyawan PLN.</p>
+                            <div class="grid grid-cols-2 sm:grid-cols-3 gap-2 mt-2 font-mono text-xs">
+                                <div class="schema-col-box">id <span class="schema-col-type">(int)</span></div>
+                                <div class="schema-col-box schema-col-pk">NIP <span class="schema-col-type">(varchar)</span></div>
+                                <div class="schema-col-box font-semibold">Nama <span class="schema-col-type">(varchar)</span></div>
+                                <div class="schema-col-box">Jenis_Kelamin <span class="schema-col-type">(char)</span></div>
+                                <div class="schema-col-box">Tanggal_Lahir <span class="schema-col-type">(date)</span></div>
+                                <div class="schema-col-box">Divisi <span class="schema-col-type">(varchar)</span></div>
+                                <div class="schema-col-box">Jabatan <span class="schema-col-type">(varchar)</span></div>
+                                <div class="schema-col-box">Tanggal_Masuk <span class="schema-col-type">(date)</span></div>
+                                <div class="schema-col-box">Status_Pegawai <span class="schema-col-type">(varchar)</span></div>
+                                <div class="schema-col-box">Email <span class="schema-col-type">(varchar)</span></div>
+                            </div>
+                        </div>
+                        <div>
+                            <span class="schema-table-badge" data-i18n="schema_table_absensi">Tabel: absensi</span>
+                            <p class="text-xs text-slate-400 mt-1" data-i18n="schema_desc_absensi">Menyimpan data kehadiran harian karyawan PLN.</p>
+                            <div class="grid grid-cols-2 sm:grid-cols-3 gap-2 mt-2 font-mono text-xs">
+                                <div class="schema-col-box">id <span class="schema-col-type">(int)</span></div>
+                                <div class="schema-col-box">NIP <span class="schema-col-type">(varchar)</span></div>
+                                <div class="schema-col-box">Tanggal <span class="schema-col-type">(date)</span></div>
+                                <div class="schema-col-box font-semibold">Status <span class="schema-col-type">(varchar)</span></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- DB 2 -->
+                <div>
+                    <h4 class="font-bold text-[#00A0E9] border-b pb-1.5 mb-2" style="border-bottom-color: var(--card-border);">Database: classicmodels</h4>
+                    <div class="pl-2 space-y-3">
+                        <div>
+                            <span class="schema-table-badge" data-i18n="schema_table_customers">Tabel: customers</span>
+                            <p class="text-xs text-slate-400 mt-1" data-i18n="schema_desc_customers">Menyimpan data pelanggan dan kredit limit.</p>
+                            <div class="grid grid-cols-2 sm:grid-cols-3 gap-2 mt-2 font-mono text-xs">
+                                <div class="schema-col-box schema-col-pk">customerNumber <span class="schema-col-type">(int)</span></div>
+                                <div class="schema-col-box font-semibold">customerName <span class="schema-col-type">(varchar)</span></div>
+                                <div class="schema-col-box">city <span class="schema-col-type">(varchar)</span></div>
+                                <div class="schema-col-box">country <span class="schema-col-type">(varchar)</span></div>
+                                <div class="schema-col-box schema-col-highlight">creditLimit <span class="schema-col-type">(decimal)</span></div>
+                                <div class="schema-col-box">salesRepEmployeeNumber <span class="schema-col-type">(int)</span></div>
+                            </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+
+</html>
