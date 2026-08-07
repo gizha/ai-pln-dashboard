@@ -288,29 +288,45 @@ body.light .dark-theme-logo {
 /* Markdown Table Styles in Chat Bubble */
 .chat-bubble-ai table {
     width: 100%;
-    border-collapse: collapse;
+    border-collapse: separate;
+    border-spacing: 0;
     margin-top: 0.75rem;
     margin-bottom: 0.75rem;
     font-size: 0.8rem;
-    border-radius: 6px;
+    border-radius: 8px;
     overflow: hidden;
-    border: 1px solid var(--card-border);
+    border: 1px solid rgba(0, 160, 233, 0.25);
+    background-color: rgba(255, 255, 255, 0.02);
+}
+
+body.light .chat-bubble-ai table {
+    border-color: rgba(0, 160, 233, 0.2);
+    background-color: rgba(255, 255, 255, 0.3);
 }
 
 .chat-bubble-ai th {
-    background-color: var(--thead-bg);
+    background-color: rgba(0, 160, 233, 0.15);
     color: var(--chat-ai-text);
     font-weight: 700;
-    padding: 0.5rem 0.75rem;
+    padding: 0.6rem 0.75rem;
     text-align: center;
-    border-bottom: 2px solid var(--card-border);
+    border-bottom: 1.5px solid rgba(0, 160, 233, 0.25);
+}
+
+body.light .chat-bubble-ai th {
+    background-color: rgba(0, 160, 233, 0.08);
+    border-bottom: 1.5px solid rgba(0, 160, 233, 0.2);
 }
 
 .chat-bubble-ai td {
-    padding: 0.5rem 0.75rem;
-    border-bottom: 1px solid var(--card-border);
+    padding: 0.6rem 0.75rem;
+    border-bottom: 1px solid rgba(0, 160, 233, 0.15);
     color: var(--text-color);
     text-align: center;
+}
+
+body.light .chat-bubble-ai td {
+    border-bottom: 1px solid rgba(0, 160, 233, 0.1);
 }
 
 .chat-bubble-ai tr:last-child td {
@@ -322,7 +338,7 @@ body.light .dark-theme-logo {
 }
 
 body.light .chat-bubble-ai tr:hover {
-    background-color: rgba(0, 0, 0, 0.02);
+    background-color: rgba(0, 160, 233, 0.04);
 }
 
 /* Chat Chart Box Container */
@@ -668,4 +684,21 @@ body.light .chat-highlight {
 
 body.show-sql-enabled .sql-expander-wrapper {
     display: flex !important;
+}
+
+/* Show/hide translated and untranslated content based on translate checkbox state */
+.translated-content {
+    display: none !important;
+}
+
+.untranslated-content {
+    display: block !important;
+}
+
+body.translate-enabled .translated-content {
+    display: block !important;
+}
+
+body.translate-enabled .untranslated-content {
+    display: none !important;
 }

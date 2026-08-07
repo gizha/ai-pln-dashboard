@@ -21,6 +21,13 @@ if not exist .venv (
     exit /b
 )
 
+:: Bebaskan port 8000 dari aplikasi lain jika sedang terpakai
+echo Memeriksa dan membebaskan port 8000...
+for /f "tokens=5" %%a in ('netstat -aon ^| findstr :8000 ^| findstr LISTENING 2^>nul') do (
+    echo Menutup proses bentrok pada PID %%a...
+    taskkill /f /pid %%a >nul 2>&1
+)
+
 :: Jalankan uvicorn secara langsung menggunakan python dari virtual environment
 cd separated_app\backend
 ..\..\.venv\Scripts\python.exe -m uvicorn main:app --reload

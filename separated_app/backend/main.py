@@ -10,7 +10,7 @@ from pydantic import BaseModel
 import mysql.connector
 from dotenv import load_dotenv
 
-# Load environment variables (added comment to trigger uvicorn reload)
+# Load environment variables (updated to trigger reload for new OLLAMA_LOCAL_MODEL)
 env_path = os.path.join(os.path.dirname(__file__), ".env")
 load_dotenv(env_path, override=True)
 
@@ -20,8 +20,12 @@ DB_USER = os.getenv("DB_USER", "root")
 DB_PASSWORD = os.getenv("DB_PASSWORD", "")
 DB_NAME = os.getenv("DB_NAME", "railway")
 DB_PORT = int(os.getenv("DB_PORT", 3306))
-OLLAMA_HOST = os.getenv("OLLAMA_HOST", "http://127.0.0.1:11434")
-OLLAMA_MODEL = os.getenv("OLLAMA_MODEL", "qwen2.5:7b-instruct")
+OLLAMA_CLOUD_API_KEY = os.getenv("OLLAMA_CLOUD_API_KEY")
+OLLAMA_CLOUD_HOST = os.getenv("OLLAMA_CLOUD_HOST", "https://ollama.com")
+OLLAMA_CLOUD_MODEL = os.getenv("OLLAMA_CLOUD_MODEL", "gpt-oss:20b")
+
+OLLAMA_LOCAL_HOST = os.getenv("OLLAMA_LOCAL_HOST", "http://127.0.0.1:11434")
+OLLAMA_LOCAL_MODEL = os.getenv("OLLAMA_LOCAL_MODEL", "qwen2.5:7b-instruct")
 
 
 app = FastAPI(title="AI PLN Backend API")
@@ -370,14 +374,15 @@ def call_gemini_api(prompt, temperature=0.0):
             
             time.sleep(2 ** attempt)
 
-def call_ollama_api(prompt, model=None, temperature=0.0):
-    if model is None:
-        model = OLLAMA_MODEL
-    url = f"{OLLAMA_HOST}/api/generate"
+def call_ollama_api(prompt, host, model, api_key=None, temperature=0.0):
+    url = f"{host}/api/generate"
     headers = {
         "Content-Type": "application/json",
         "Connection": "close"
     }
+    if api_key:
+        headers["Authorization"] = f"Bearer {api_key}"
+        
     payload = {
         "model": model,
         "prompt": prompt,
@@ -394,7 +399,7 @@ def call_ollama_api(prompt, model=None, temperature=0.0):
     except requests.exceptions.RequestException as e:
         raise HTTPException(
             status_code=503,
-            detail=f"Gagal terhubung ke Ollama lokal di {OLLAMA_HOST}. Pastikan aplikasi Ollama sudah berjalan dan model '{model}' sudah diunduh menggunakan perintah 'ollama run {model}'."
+            detail=f"Gagal terhubung ke Ollama di {host}. Pastikan layanan aktif dan model '{model}' terdaftar."
         )
 
 # Thread-local state to track LLM provider fallback
@@ -407,16 +412,37 @@ def set_fallback_flag(val: bool):
     thread_local.fallback_to_ollama = val
 
 def call_llm(prompt, provider="gemini", temperature=0.0):
-    if provider.lower() == "ollama":
-        return call_ollama_api(prompt, temperature=temperature)
-    else:
+    prov = provider.lower()
+    if prov == "ollama_cloud" or prov == "ollama":
+        return call_ollama_api(
+            prompt,
+            host=OLLAMA_CLOUD_HOST,
+            model=OLLAMA_CLOUD_MODEL,
+            api_key=OLLAMA_CLOUD_API_KEY,
+            temperature=temperature
+        )
+    elif prov == "ollama_local":
+        return call_ollama_api(
+            prompt,
+            host=OLLAMA_LOCAL_HOST,
+            model=OLLAMA_LOCAL_MODEL,
+            api_key=None,
+            temperature=temperature
+        )
+    else: # gemini
         try:
             return call_gemini_api(prompt, temperature=temperature)
         except Exception as e:
-            print(f"Gemini API call failed: {e}. Trying fallback to Ollama.")
+            print(f"Gemini API call failed: {e}. Trying fallback to Ollama Local.")
             set_fallback_flag(True)
             try:
-                return call_ollama_api(prompt, temperature=temperature)
+                return call_ollama_api(
+                    prompt,
+                    host=OLLAMA_LOCAL_HOST,
+                    model=OLLAMA_LOCAL_MODEL,
+                    api_key=None,
+                    temperature=temperature
+                )
             except Exception as ollama_err:
                 print(f"Ollama fallback also failed: {ollama_err}")
                 raise e
@@ -491,9 +517,14 @@ Berikut skema semua database yang tersedia:
 Aturan:
 - Hanya buat query SELECT. Jangan pernah membuat INSERT, UPDATE, DELETE, DROP, atau ALTER.
 - WAJIB tulis nama tabel lengkap dengan format database.tabel, contoh: karyawan_pln.karyawan_pln atau classicmodels.customers.
+- Nilai kolom 'Status' pada tabel absensi HANYA berisi 'Masuk' (untuk hadir/masuk) dan 'Tidak' (untuk tidak masuk/absen/terlambat). Jangan pernah menggunakan nilai status lain seperti 'Tertunda', 'Hadir', atau 'Terlambat'.
 - Pilih database yang paling sesuai dengan topik pertanyaan. Pertanyaan soal karyawan/pegawai PLN pakai database karyawan_pln. Pertanyaan soal customer/order/produk/pembayaran pakai database classicmodels.
 - Kalau butuh JOIN antar tabel dalam 1 database, tetap qualify tiap tabel dengan nama database-nya.
 - Hanya gunakan nama kolom yang benar-benar ada di skema di atas. Jangan mengarang nama kolom.
+- ATURAN PRODUK TERLARIS VS STOK: Untuk mencari produk "terlaris", "paling laku", atau "paling banyak dibeli", Anda WAJIB menggabungkan tabel classicmodels.products dengan classicmodels.orderdetails menggunakan productCode, lalu hitung SUM(od.quantityOrdered). JANGAN PERNAH menggunakan kolom quantityInStock untuk produk terlaris. Kolom quantityInStock hanya boleh digunakan untuk pertanyaan tentang "stok barang", "sisa stok", "ketersediaan barang", atau "jumlah stok di gudang".
+- ATURAN TANGGAL & UMUR: Untuk menghitung umur (usia) karyawan dalam tahun, gunakan rumus: TIMESTAMPDIFF(YEAR, Tanggal_Lahir, CURDATE()). Untuk menghitung masa kerja karyawan gunakan: TIMESTAMPDIFF(YEAR, Tanggal_Masuk, CURDATE()). JANGAN menggunakan pengurangan tanggal biasa.
+- ATURAN RELASI TABEL (JOIN KEYS): Hubungkan customers ke orders pada customerNumber; orders ke orderdetails pada orderNumber; orderdetails ke products pada productCode; payments ke customers pada customerNumber.
+- ATURAN PENGURUTAN & BATASAN: Gunakan ORDER BY (ASC/DESC) dan LIMIT untuk pertanyaan yang menanyakan "terbanyak", "tertinggi", "terlama", "paling", atau "ter-". Gunakan GROUP BY saat mengumpulkan data per divisi, jabatan, atau negara.
 - Untuk pencarian teks gunakan LIKE '%kata%'.
 - Jawab HANYA dengan query SQL, tanpa penjelasan, tanpa markdown, tanda kutip pembungkus.
 - Query harus diakhiri dengan titik koma.
@@ -520,6 +551,12 @@ SQL: SELECT COUNT(*) AS total FROM karyawan_pln.absensi WHERE Tanggal = '2026-08
 Pertanyaan: siapa saja karyawan divisi IT yang tidak masuk pada tanggal 2026-08-04?
 SQL: SELECT k.nama FROM karyawan_pln.karyawan_pln k JOIN karyawan_pln.absensi a ON k.nip = a.NIP WHERE k.divisi = 'IT' AND a.Tanggal = '2026-08-04' AND a.Status = 'Tidak';
 
+Pertanyaan: produk apa yang paling laris terjual?
+SQL: SELECT p.productName, SUM(od.quantityOrdered) AS total_ordered FROM classicmodels.products p JOIN classicmodels.orderdetails od ON p.productCode = od.productCode GROUP BY p.productCode, p.productName ORDER BY total_ordered DESC LIMIT 1;
+
+Pertanyaan: produk apa yang memiliki sisa stok paling banyak di gudang?
+SQL: SELECT productName, quantityInStock FROM classicmodels.products ORDER BY quantityInStock DESC LIMIT 1;
+
 Pertanyaan: pembayaran produk terlama tanggal berapa dan oleh siapa?
 SQL: SELECT p.paymentDate, c.customerName FROM classicmodels.payments p JOIN classicmodels.customers c ON p.customerNumber = c.customerNumber ORDER BY p.paymentDate ASC LIMIT 1;
 
@@ -532,20 +569,57 @@ SQL:"""
     raw = call_llm(prompt, provider=provider, temperature=0.0)
     return clean_sql(raw)
 
-def summarize_result(question, rows):
+def summarize_result(question, rows, provider="gemini", translate=True):
     # 1. Jika data kosong, langsung kembalikan pesan gagal secara lokal
     if not rows:
         return "Data tidak ditemukan untuk pertanyaan tersebut di database lokal."
     
+    # Coba terjemahkan kolom teks yang sangat panjang (>40 karakter) di semua baris
+    if translate:
+        for row in rows:
+            for key, val in row.items():
+                if isinstance(val, str) and len(val.strip()) > 40:
+                    prompt = f"""Kamu adalah penerjemah profesional. Terjemahkan teks hasil kueri database berikut ke dalam Bahasa Indonesia yang alami, santun, dan mudah dipahami.
+Teks asli: {val}
+
+Aturan:
+- Jawab HANYA dengan hasil terjemahannya saja, tanpa kata pengantar atau penjelasan tambahan.
+- Jangan menambahkan tanda kutip pembungkus kecuali memang ada di teks asli.
+- Tulis dengan gaya bahasa informatif.
+
+Terjemahan:"""
+                    try:
+                        translated_val = call_llm(prompt, provider=provider, temperature=0.3)
+                        if translated_val and translated_val.strip():
+                            row[key] = translated_val.strip()
+                    except Exception as e:
+                        print(f"Gagal menerjemahkan teks untuk kolom {key}: {e}")
+    
     # 2. Jika hasilnya cuma 1 baris & 1 kolom (seperti total COUNT/jumlah data)
     if len(rows) == 1 and len(rows[0]) == 1:
         key, val = list(rows[0].items())[0]
-        # Format nilai angka agar rapi jika float/int (Merapikan format angka ribuan secara lokal menggunakan Python)
-        if isinstance(val, float):
-            val = f"{val:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
-        elif isinstance(val, int):
-            val = f"{val:,}".replace(",", ".")
-        return f"Berdasarkan data di database lokal, hasil pencarian **{key}** adalah: =={val}=="
+        
+        import decimal
+        # Format nilai angka agar rapi jika float/decimal/int
+        if isinstance(val, (int, float, decimal.Decimal)):
+            val_num = float(val)
+            # Jika kolom adalah persentase (mengandung kata persen, percent, atau pct)
+            if any(x in key.lower() for x in ["persen", "percent", "pct"]):
+                if val_num.is_integer():
+                    val = f"{int(val_num)}%"
+                else:
+                    val = f"{val_num:.2f}%".replace(".", ",")
+            else:
+                # Format angka biasa
+                if val_num.is_integer():
+                    val = f"{int(val_num):,}".replace(",", ".")
+                else:
+                    val = f"{val_num:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
+            
+        if isinstance(val, str) and len(val.strip()) > 15:
+            return f"Berdasarkan data di database lokal, hasil pencarian **{key}** adalah:\n\n{val}"
+        else:
+            return f"Berdasarkan data di database lokal, hasil pencarian **{key}** adalah: =={val}=="
     
     # 3. Jika hasilnya banyak kolom/baris, format sebagai Markdown Table
     # Filter keys to exclude ID / Password demi privasi
@@ -596,6 +670,7 @@ class ChatRequest(BaseModel):
     question: str
     history: List[ChatMessage] = []
     provider: str = "gemini"
+    translate: bool = True
 
 @app.get("/api/data")
 def get_table_data(table: str = "karyawan_pln", db: str = "karyawan_pln"):
@@ -920,18 +995,25 @@ def chat_endpoint(request: ChatRequest):
             conn.close()
             used_sql = sqlite_sql
             
-        # 4. MEMBUAT RINGKASAN SECARA LOKAL (Tanpa mengirim 'rows' ke Gemini cloud)
-        answer = summarize_result(final_question, rows)
+        # 4. MEMBUAT RINGKASAN SECARA LOKAL (Dua versi: Asli Inggris dan Terjemahan Indonesia)
+        import copy
+        original_rows = copy.deepcopy(rows)
+        answer = summarize_result(final_question, original_rows, provider=request.provider, translate=False)
+        
+        translated_rows = copy.deepcopy(rows)
+        translated_answer = summarize_result(final_question, translated_rows, provider=request.provider, translate=True)
         
         # 5. EKSTRAKSI INFORMASI GRAFIK SECARA DINAMIS
         chart_info = extract_chart_info(final_question, used_sql, rows)
         
         # Tambahkan notifikasi jika terjadi fallback ke Ollama
         if get_fallback_flag():
+            translated_answer = "*Koneksi Cloud Gemini terhambat. Sistem otomatis beralih menggunakan Ollama lokal sebagai cadangan.*\n\n" + translated_answer
             answer = "*Koneksi Cloud Gemini terhambat. Sistem otomatis beralih menggunakan Ollama lokal sebagai cadangan.*\n\n" + answer
             
         return {
             "answer": answer,
+            "translated_answer": translated_answer,
             "sql": used_sql,
             "rows": rows,
             "chart_info": chart_info

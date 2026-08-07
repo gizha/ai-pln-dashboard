@@ -4,6 +4,7 @@ const BACKEND_URL = "http://127.0.0.1:8000";
 const dbSelect = document.getElementById("db-select");
 const aiProviderSelect = document.getElementById("ai-provider-select");
 const showSqlCheckbox = document.getElementById("show-sql-checkbox");
+const translateCheckbox = document.getElementById("translate-checkbox");
 const resetChatBtn = document.getElementById("reset-chat-btn");
 const dataStatusAlert = document.getElementById("data-status-alert");
 const dataStatusText = document.getElementById("data-status-text");
@@ -67,6 +68,7 @@ const translations = {
         btn_reset_chat: "Reset Chat",
         label_provider: "AI Provider (LLM):",
         label_show_sql: "Show Executed SQL",
+        label_translate: "Translate Descriptions",
         chat_input_placeholder: "Ask something about PLN database...",
         btn_send: "Send",
         chat_welcome: "Hello! I am Ask PLN, your intelligent assistant. How can I help you with database queries today?",
@@ -125,6 +127,7 @@ const translations = {
         btn_reset_chat: "Reset Chat",
         label_provider: "Penyedia AI (LLM):",
         label_show_sql: "Tampilkan SQL yang Dijalankan",
+        label_translate: "Terjemahkan Deskripsi",
         chat_input_placeholder: "Tanyakan sesuatu tentang database PLN...",
         btn_send: "Kirim",
         chat_welcome: "Halo! Saya adalah Ask PLN, asisten cerdas Anda. Ada yang bisa saya bantu tentang data database hari ini?",
@@ -474,7 +477,8 @@ async function handleChatSubmit(e) {
             body: JSON.stringify({ 
                 question,
                 history: chatHistory,
-                provider: selectedProvider
+                provider: selectedProvider,
+                translate: translateCheckbox ? translateCheckbox.checked : true
             })
         });
         
@@ -492,7 +496,7 @@ async function handleChatSubmit(e) {
         loadingBubble.remove();
         
         // Render AI response with speed stats
-        appendMessage("ai", data.answer, false, responseTimeSeconds);
+        appendMessage("ai", data.answer, false, responseTimeSeconds, data.translated_answer);
         
         // Render Chart if returned by backend
         if (data.chart_info) {
@@ -555,7 +559,7 @@ function parseMarkdown(text) {
                 tableWrapper += `<div class="flex justify-end mb-1">`;
                 tableWrapper += `<button type="button" class="copy-btn" onclick="copyTableText(this)" data-i18n="btn_salin_tabel">${getTranslation("btn_salin_tabel")}</button>`;
                 tableWrapper += `</div>`;
-                tableWrapper += `<div class="border border-slate-800 rounded-lg overflow-hidden">`;
+                tableWrapper += `<div class="rounded-lg overflow-hidden">`;
                 tableWrapper += tableHtml;
                 tableWrapper += `</div>`;
                 tableWrapper += `</div>`;
@@ -577,7 +581,7 @@ function parseMarkdown(text) {
         tableWrapper += `<div class="flex justify-end mb-1">`;
         tableWrapper += `<button type="button" class="copy-btn" onclick="copyTableText(this)" data-i18n="btn_salin_tabel">${getTranslation("btn_salin_tabel")}</button>`;
         tableWrapper += `</div>`;
-        tableWrapper += `<div class="border border-slate-800 rounded-lg overflow-hidden">`;
+        tableWrapper += `<div class="rounded-lg overflow-hidden">`;
         tableWrapper += tableHtml;
         tableWrapper += `</div>`;
         tableWrapper += `</div>`;
@@ -587,7 +591,7 @@ function parseMarkdown(text) {
     return parsedLines.join("<br>");
 }
 
-function appendMessage(sender, text, isLoading = false, responseTime = null) {
+function appendMessage(sender, text, isLoading = false, responseTime = null, translatedText = null) {
     const bubbleWrapper = document.createElement("div");
     bubbleWrapper.className = `flex ${sender === "user" ? "justify-end" : "justify-start"} items-start space-x-3`;
     
@@ -603,8 +607,17 @@ function appendMessage(sender, text, isLoading = false, responseTime = null) {
         bubble.innerHTML = `<span class="flex items-center space-x-2"><span class="animate-pulse">${text}</span></span>`;
     } else {
         if (sender === "ai") {
-            // Render Markdown parsed HTML untuk asisten AI
-            bubble.innerHTML = parseMarkdown(text);
+            if (translatedText && translatedText.trim() !== text.trim()) {
+                // Render both versions wrapped in class containers for dynamic CSS switching
+                const originalHtml = parseMarkdown(text);
+                const translatedHtml = parseMarkdown(translatedText);
+                bubble.innerHTML = `
+                    <div class="untranslated-content">${originalHtml}</div>
+                    <div class="translated-content">${translatedHtml}</div>
+                `;
+            } else {
+                bubble.innerHTML = parseMarkdown(text);
+            }
             
             // Append response time stats if provided
             if (responseTime !== null) {
@@ -1057,7 +1070,7 @@ function renderCharts(tableName, data) {
         // Calculate counts for Division
         const divCounts = {};
         data.forEach(row => {
-            const div = row.divisi || "Lainnya";
+            const div = row.Divisi || row.divisi || "Lainnya";
             divCounts[div] = (divCounts[div] || 0) + 1;
         });
         
@@ -1067,7 +1080,7 @@ function renderCharts(tableName, data) {
         // Calculate counts for Gender
         const genderCounts = { "Laki-laki": 0, "Perempuan": 0 };
         data.forEach(row => {
-            const jk = String(row.jenis_kelamin || "").toUpperCase();
+            const jk = String(row.Jenis_Kelamin || row.jenis_kelamin || "").toUpperCase();
             if (jk === "L" || jk === "LAKI-LAKI") genderCounts["Laki-laki"]++;
             else if (jk === "P" || jk === "PEREMPUAN") genderCounts["Perempuan"]++;
         });
@@ -1368,6 +1381,28 @@ document.addEventListener("DOMContentLoaded", () => {
             showSqlCheckbox.checked = false;
             document.body.classList.remove("show-sql-enabled");
         }
+    }
+    
+    // Initialize translate preference checkbox listener
+    if (translateCheckbox) {
+        const applyTranslate = (enabled) => {
+            if (enabled) {
+                document.body.classList.add("translate-enabled");
+                translateCheckbox.checked = true;
+                localStorage.setItem("pln_translate", "true");
+            } else {
+                document.body.classList.remove("translate-enabled");
+                translateCheckbox.checked = false;
+                localStorage.setItem("pln_translate", "false");
+            }
+        };
+        
+        translateCheckbox.addEventListener("change", () => {
+            applyTranslate(translateCheckbox.checked);
+        });
+        
+        const savedTranslate = localStorage.getItem("pln_translate");
+        applyTranslate(savedTranslate !== "false"); // Default to true
     }
 });
 
