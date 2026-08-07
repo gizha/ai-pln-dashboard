@@ -28,3 +28,7 @@ htmlcov/
 build/
 dist/
 *.egg-info/
+
+# Local documentation variants
+README_portfolio.md
+README_simplified.md
