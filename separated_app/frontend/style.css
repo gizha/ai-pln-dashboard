@@ -702,3 +702,98 @@ body.translate-enabled .translated-content {
 body.translate-enabled .untranslated-content {
     display: none !important;
 }
+
+/* Hero Section Dynamic Theme Styling */
+#section-welcome {
+    background-image: linear-gradient(rgba(15, 23, 42, 0.45), rgba(15, 23, 42, 0.7)), url('BG UTAMA.jpg');
+    background-size: cover;
+    background-position: center;
+}
+
+.hero-title {
+    color: #ffffff !important;
+}
+
+.hero-desc {
+    color: #cbd5e1 !important;
+}
+
+.hero-btn-outline {
+    border-color: rgba(255, 255, 255, 0.4) !important;
+    color: #ffffff !important;
+    transition: all 0.3s ease;
+}
+
+.hero-btn-outline:hover {
+    background-color: rgba(255, 255, 255, 0.1) !important;
+    border-color: #ffffff !important;
+}
+
+#hero-bottom-overlay {
+    background: linear-gradient(to top, var(--bg-color), transparent) !important;
+}
+
+/* Welcome Page Header Override for Theme Compatibility */
+.welcome-header .version-badge {
+    background-color: rgba(255, 255, 255, 0.08) !important;
+    color: #94a3b8 !important;
+}
+
+.welcome-header .version-badge:hover {
+    background-color: rgba(255, 255, 255, 0.15) !important;
+    color: #ffffff !important;
+}
+
+.welcome-header #lang-toggle-btn,
+.welcome-header #lang-toggle-btn-mobile,
+.welcome-header #theme-toggle-btn,
+.welcome-header #theme-toggle-btn-mobile {
+    background-color: rgba(255, 255, 255, 0.08) !important;
+    color: #94a3b8 !important;
+}
+
+.welcome-header #lang-toggle-btn:hover,
+.welcome-header #lang-toggle-btn-mobile:hover,
+.welcome-header #theme-toggle-btn:hover,
+.welcome-header #theme-toggle-btn-mobile:hover {
+    background-color: rgba(255, 255, 255, 0.15) !important;
+    color: #ffffff !important;
+}
+
+body.light .welcome-header .dark-theme-logo,
+.welcome-header .dark-theme-logo {
+    color: #ffffff !important;
+}
+
+/* Landing Page Metric Cards */
+.landing-metric-card {
+    background-color: rgba(22, 27, 34, 0.45);
+    border-color: rgba(255, 255, 255, 0.1) !important;
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    transition: all 0.3s ease;
+}
+
+.landing-metric-title {
+    color: #cbd5e1; /* slate-300 */
+}
+
+.landing-metric-sub {
+    color: #94a3b8; /* slate-400 */
+}
+
+/* Light Mode Overrides for Landing Page Metrics */
+body.light .landing-metric-card {
+    background-color: rgba(255, 255, 255, 0.75) !important;
+    border-color: rgba(0, 160, 233, 0.25) !important;
+    box-shadow: 0 10px 25px -5px rgba(0, 160, 233, 0.1), 0 8px 10px -6px rgba(0, 160, 233, 0.1) !important;
+}
+
+body.light .landing-metric-title {
+    color: #0f172a !important; /* slate-900 */
+}
+
+body.light .landing-metric-sub {
+    color: #475569 !important; /* slate-600 */
+}
+

@@ -17,6 +17,7 @@ const chatForm = document.getElementById("chat-form");
 const chatInput = document.getElementById("chat-input");
 const subtitleDesc = document.getElementById("subtitle-desc");
 const downloadCsvBtn = document.getElementById("download-csv-btn");
+const desktopNav = document.getElementById("desktop-nav");
 
 // State
 let currentLang = localStorage.getItem("pln_lang") || "id";
@@ -31,12 +32,16 @@ let chartInstance2 = null;
 // --- Language Localization Dictionary ---
 const translations = {
     en: {
-        nav_about: "About",
-        nav_dashboard: "Dashboard",
-        nav_ask: "Ask PLN",
+        nav_home: "Home",
+        nav_about: "About PLN",
+        nav_dashboard: "Data",
+        nav_ask: "Ask Me",
+        hero_desc: "Integrated operational data analysis and intelligent chatbot system based on natural language processing for fast, reliable, and secure data retrieval.",
+        btn_about_pln: "About PLN Nusantara Power",
+        btn_ask_pln: "Ask Me",
         btn_theme_light: "Light Mode",
         btn_theme_dark: "Dark Mode",
-        dashboard_title: "Data Distribution Dashboard",
+        dashboard_title: "Data Distribution",
         dashboard_subtitle: "Table Dashboard & Statistical Analysis",
         alert_db_connecting: "Connecting to database...",
         alert_db_connected_mysql: "Successfully connected to MySQL local database.",
@@ -63,7 +68,7 @@ const translations = {
         sidebar_history_title: "Query History",
         btn_clear_history: "Clear",
         history_empty: "No history yet.",
-        chat_header: "Ask PLN",
+        chat_header: "Ask Me",
         btn_schema_modal: "Database Schema",
         btn_reset_chat: "Reset Chat",
         label_provider: "AI Provider (LLM):",
@@ -71,7 +76,7 @@ const translations = {
         label_translate: "Translate Descriptions",
         chat_input_placeholder: "Ask something about PLN database...",
         btn_send: "Send",
-        chat_welcome: "Hello! I am Ask PLN, your intelligent assistant. How can I help you with database queries today?",
+        chat_welcome: "Hello! I am Ask Me, your intelligent assistant. How can I help you with database queries today?",
         schema_modal_title: "Database Structure Schema",
         btn_salin_tabel: "Copy Table",
         btn_salin_sql: "Copy SQL",
@@ -87,15 +92,25 @@ const translations = {
         schema_desc_customers: "Stores customer profiles and credit limits.",
         schema_table_absensi: "Table: absensi",
         schema_desc_absensi: "Stores daily attendance logs of PLN employees.",
-        footer_copyright: "© 2026 PLN DataHub AI. All Rights Reserved."
+        footer_copyright: "© 2026 PLN DataHub AI. All Rights Reserved.",
+        metric_db_title: "Database Engines",
+        metric_db_sub: "MySQL & SQLite Fallback",
+        metric_ai_title: "AI Uptime Hybrid",
+        metric_ai_sub: "Gemini API + Ollama Local",
+        metric_sec_title: "Query Security",
+        metric_sec_sub: "Strict Injection Filter"
     },
     id: {
-        nav_about: "Beranda",
-        nav_dashboard: "Dashboard",
-        nav_ask: "Ask PLN",
+        nav_home: "Beranda",
+        nav_about: "Tentang PLN",
+        nav_dashboard: "Data",
+        nav_ask: "Ask Me",
+        hero_desc: "Sistem integrasi analisis data operasional dan chatbot cerdas berbasis pemrosesan bahasa alami untuk penarikan data cepat, handal, dan aman.",
+        btn_about_pln: "About PLN Nusantara Power",
+        btn_ask_pln: "Ask Me",
         btn_theme_light: "Mode Terang",
         btn_theme_dark: "Mode Gelap",
-        dashboard_title: "Dashboard Distribusi Data",
+        dashboard_title: "Distribusi Data",
         dashboard_subtitle: "Dashboard Tabel & Analisis Statistik",
         alert_db_connecting: "Menghubungkan ke database...",
         alert_db_connected_mysql: "Data berhasil dimuat dari database lokal MySQL.",
@@ -122,7 +137,7 @@ const translations = {
         sidebar_history_title: "Riwayat Tanya",
         btn_clear_history: "Hapus",
         history_empty: "Belum ada riwayat.",
-        chat_header: "Ask PLN",
+        chat_header: "Ask Me",
         btn_schema_modal: "Skema Database",
         btn_reset_chat: "Reset Chat",
         label_provider: "Penyedia AI (LLM):",
@@ -130,7 +145,7 @@ const translations = {
         label_translate: "Terjemahkan Deskripsi",
         chat_input_placeholder: "Tanyakan sesuatu tentang database PLN...",
         btn_send: "Kirim",
-        chat_welcome: "Halo! Saya adalah Ask PLN, asisten cerdas Anda. Ada yang bisa saya bantu tentang data database hari ini?",
+        chat_welcome: "Halo! Saya adalah Ask Me, asisten cerdas Anda. Ada yang bisa saya bantu tentang data database hari ini?",
         schema_modal_title: "Skema Struktur Database",
         btn_salin_tabel: "Salin Tabel",
         btn_salin_sql: "Salin SQL",
@@ -146,7 +161,13 @@ const translations = {
         schema_desc_customers: "Menyimpan data pelanggan dan kredit limit.",
         schema_table_absensi: "Tabel: absensi",
         schema_desc_absensi: "Menyimpan data kehadiran harian karyawan PLN.",
-        footer_copyright: "© 2026 PLN DataHub AI. Semua Hak Cipta Dilindungi."
+        footer_copyright: "© 2026 PLN DataHub AI. Semua Hak Cipta Dilindungi.",
+        metric_db_title: "Database Engine",
+        metric_db_sub: "MySQL & SQLite Fallback",
+        metric_ai_title: "AI Uptime Hibrida",
+        metric_ai_sub: "Gemini API + Ollama Lokal",
+        metric_sec_title: "Keamanan Kueri",
+        metric_sec_sub: "Filter Injeksi Ketat"
     }
 };
 
@@ -784,7 +805,7 @@ resetChatBtn.addEventListener("click", () => {
     chatBox.innerHTML = `
         <div class="flex items-start space-x-3">
             <div class="chat-bubble-ai p-3 rounded-2xl rounded-tl-none max-w-[80%] text-sm">
-                Halo! Saya adalah Ask PLN, asisten cerdas Anda. Ada yang bisa saya bantu tentang data database hari ini?
+                Halo! Saya adalah Ask Me, asisten cerdas Anda. Ada yang bisa saya bantu tentang data database hari ini?
             </div>
         </div>
         
@@ -935,7 +956,7 @@ mobileLinks.forEach(link => {
 });
 
 // --- Section Switching / Tab Logic ---
-const sections = ["about", "dashboard", "ask-pln"];
+const sections = ["welcome", "about", "dashboard", "ask-pln"];
 const navLinks = document.querySelectorAll(".nav-link");
 const navLinksMobile = document.querySelectorAll(".nav-link-mobile");
 
@@ -950,6 +971,40 @@ function switchSection(sectionId) {
             }
         }
     });
+
+    // Toggle navigation bar, header style, and footer visibility based on section
+    const header = document.querySelector("header");
+    const footer = document.querySelector("footer");
+    const logoText = document.querySelector(".dark-theme-logo");
+
+    if (sectionId === "welcome") {
+        if (desktopNav) desktopNav.style.setProperty("display", "none", "important");
+        if (mobileMenuBtn) mobileMenuBtn.style.setProperty("display", "none", "important");
+        if (mobileMenu) mobileMenu.classList.add("hidden");
+        
+        // Hide footer on welcome splash screen
+        if (footer) footer.classList.add("hidden");
+        
+        // Force dark style on header on welcome page (regardless of Light/Dark theme)
+        if (header) {
+            header.classList.add("welcome-header");
+            header.style.setProperty("background-color", "rgba(15, 23, 42, 0.85)", "important");
+            header.style.setProperty("border-color", "rgba(255, 255, 255, 0.1)", "important");
+        }
+    } else {
+        if (desktopNav) desktopNav.style.removeProperty("display");
+        if (mobileMenuBtn) mobileMenuBtn.style.removeProperty("display");
+        
+        // Show footer on normal pages
+        if (footer) footer.classList.remove("hidden");
+        
+        // Restore theme style on header
+        if (header) {
+            header.classList.remove("welcome-header");
+            header.style.removeProperty("background-color");
+            header.style.removeProperty("border-color");
+        }
+    }
     
     // Update active nav links (desktop)
     navLinks.forEach(link => {
@@ -969,7 +1024,7 @@ function switchSection(sectionId) {
 }
 
 // Add click listeners to navigation links to handle section switching
-const allNavLinks = document.querySelectorAll(".nav-link, .nav-link-mobile");
+const allNavLinks = document.querySelectorAll('.nav-link, .nav-link-mobile, a[href^="#section-"]');
 allNavLinks.forEach(link => {
     link.addEventListener("click", (e) => {
         e.preventDefault();
@@ -1349,7 +1404,7 @@ document.addEventListener("DOMContentLoaded", () => {
     loadTablesList();
     // Initialize carousel slide and active section state
     showSlide(0);
-    switchSection("about");
+    switchSection("welcome");
     
     // Bind modal and suggestions listeners
     initSchemaModal();

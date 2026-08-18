@@ -282,7 +282,6 @@ def dict_factory(cursor, row):
     return d
 
 def get_sqlite_connection():
-    init_sqlite_db()
     conn = sqlite3.connect(SQLITE_DB_PATH)
     conn.row_factory = dict_factory
     return conn
@@ -397,9 +396,10 @@ def call_ollama_api(prompt, host, model, api_key=None, temperature=0.0):
         result = response.json()
         return result.get("response", "")
     except requests.exceptions.RequestException as e:
+        print(f"Ollama connection error details: {e}")
         raise HTTPException(
             status_code=503,
-            detail=f"Gagal terhubung ke Ollama di {host}. Pastikan layanan aktif dan model '{model}' terdaftar."
+            detail=f"Gagal terhubung ke Ollama di {host}. Pastikan layanan aktif dan model '{model}' terdaftar. Detail error: {str(e)}"
         )
 
 # Thread-local state to track LLM provider fallback
@@ -484,16 +484,14 @@ def clean_sql(raw_text):
     match = re.search(r"```(?:sql)?\s*(.*?)```", text, re.DOTALL | re.IGNORECASE)
     if match:
         text = match.group(1).strip()
-    lines = [l.strip() for l in text.splitlines() if l.strip()]
-    sql_lines = []
-    capturing = False
-    for line in lines:
-        if line.lower().startswith("select"):
-            capturing = True
-        if capturing:
-            sql_lines.append(line)
-    query = " ".join(sql_lines) if sql_lines else text
-    query = query.split(";")[0].strip() + ";"
+    
+    # Cari query SELECT dalam teks secara case-insensitive
+    select_match = re.search(r"\b(select\b.*?)(?:;|$)", text, re.DOTALL | re.IGNORECASE)
+    if select_match:
+        query = select_match.group(1).strip() + ";"
+        return query
+        
+    query = text.split(";")[0].strip() + ";"
     return query
 
 def is_safe_select(query):
@@ -515,17 +513,43 @@ Berikut skema semua database yang tersedia:
 {schema_text}
 
 Aturan:
-- Hanya buat query SELECT. Jangan pernah membuat INSERT, UPDATE, DELETE, DROP, atau ALTER.
+- WAJIB HANYA buat query SELECT. JANGAN PERNAH membuat query SHOW, DESCRIBE, EXPLAIN, INSERT, UPDATE, DELETE, DROP, atau ALTER.
 - WAJIB tulis nama tabel lengkap dengan format database.tabel, contoh: karyawan_pln.karyawan_pln atau classicmodels.customers.
 - Nilai kolom 'Status' pada tabel absensi HANYA berisi 'Masuk' (untuk hadir/masuk) dan 'Tidak' (untuk tidak masuk/absen/terlambat). Jangan pernah menggunakan nilai status lain seperti 'Tertunda', 'Hadir', atau 'Terlambat'.
 - Pilih database yang paling sesuai dengan topik pertanyaan. Pertanyaan soal karyawan/pegawai PLN pakai database karyawan_pln. Pertanyaan soal customer/order/produk/pembayaran pakai database classicmodels.
 - Kalau butuh JOIN antar tabel dalam 1 database, tetap qualify tiap tabel dengan nama database-nya.
 - Hanya gunakan nama kolom yang benar-benar ada di skema di atas. Jangan mengarang nama kolom.
-- ATURAN PRODUK TERLARIS VS STOK: Untuk mencari produk "terlaris", "paling laku", atau "paling banyak dibeli", Anda WAJIB menggabungkan tabel classicmodels.products dengan classicmodels.orderdetails menggunakan productCode, lalu hitung SUM(od.quantityOrdered). JANGAN PERNAH menggunakan kolom quantityInStock untuk produk terlaris. Kolom quantityInStock hanya boleh digunakan untuk pertanyaan tentang "stok barang", "sisa stok", "ketersediaan barang", atau "jumlah stok di gudang".
-- ATURAN TANGGAL & UMUR: Untuk menghitung umur (usia) karyawan dalam tahun, gunakan rumus: TIMESTAMPDIFF(YEAR, Tanggal_Lahir, CURDATE()). Untuk menghitung masa kerja karyawan gunakan: TIMESTAMPDIFF(YEAR, Tanggal_Masuk, CURDATE()). JANGAN menggunakan pengurangan tanggal biasa.
+- JANGAN PERNAH mengakses atau membuat query ke database/tabel metadata sistem (seperti information_schema, sqlite_master, dll). Semua kueri hanya boleh ditargetkan ke tabel-tabel bisnis yang tercantum di skema di atas.
+- PENTING: Kolom `Nama` hanya ada di tabel `karyawan_pln.karyawan_pln`. Tabel `karyawan_pln.absensi` TIDAK memiliki kolom `Nama` (hanya ada kolom `NIP`). Jika ditanyakan "siapa" atau "nama" karyawan terkait kehadiran/absensi, Anda WAJIB melakukan JOIN antara `karyawan_pln.karyawan_pln` dan `karyawan_pln.absensi` berdasarkan kolom `NIP`.
+- Pertanyaan tentang "bidang", "divisi", "departemen", atau "bagian" merujuk pada data/nilai di dalam kolom `Divisi` di tabel `karyawan_pln.karyawan_pln`, bukan mencari skema database/nama kolom (gunakan SELECT DISTINCT Divisi FROM karyawan_pln.karyawan_pln;).
+- ATURAN SINONIM KOLOM & ISTILAH:
+  * "bidang", "divisi", "departemen", "bagian" merujuk ke kolom `Divisi` pada tabel `karyawan_pln.karyawan_pln`.
+  * "jabatan", "posisi", "pekerjaan" merujuk ke kolom `Jabatan` pada tabel `karyawan_pln.karyawan_pln`.
+  * "jenis kelamin", "gender", "kelamin" merujuk ke kolom `Jenis_Kelamin` (gunakan nilai 'L' untuk Laki-laki/Pria, 'P' untuk Perempuan/Wanita).
+  * "kehadiran", "absen", "kehadiran harian" merujuk ke tabel `karyawan_pln.absensi`.
+- ATURAN PRODUK TERLARIS VS STOK: Untuk mencari produk "terlaris", "paling laku", atau "paling banyak dibeli", Anda WAJIB menggabungkan tabel classicmodels.products dengan classicmodels.orderdetails menggunakan productCode, lalu hitung SUM(od.quantityOrdered). JANGAN PERNAH menggunakan kolom quantityInStock untuk produk terlaris. Kolom quantityInStock hanya boleh digunakan untuk pertanyaan tentang "stok barang", "sisa stok", "ketersediaan barang", or "jumlah stok di gudang".
+- ATURAN TANGGAL, UMUR & MASA KERJA:
+  * Umur karyawan dalam tahun: TIMESTAMPDIFF(YEAR, Tanggal_Lahir, CURDATE()).
+  * Masa kerja karyawan dalam tahun: TIMESTAMPDIFF(YEAR, Tanggal_Masuk, CURDATE()).
+  * Karyawan TERTUA / PALING TUA / USIA MAKSIMAL (lahir paling awal): Gunakan ORDER BY Tanggal_Lahir ASC LIMIT 1.
+  * Karyawan TERMUDA / PALING MUDA / USIA MINIMAL (lahir paling akhir): Gunakan ORDER BY Tanggal_Lahir DESC LIMIT 1.
+  * Karyawan dengan MASA KERJA TERLAMA (masuk paling awal): Gunakan ORDER BY Tanggal_Masuk ASC LIMIT 1.
+  * Karyawan dengan MASA KERJA TERBARU (masuk paling akhir): Gunakan ORDER BY Tanggal_Masuk DESC LIMIT 1.
+  * PERINGATAN: Pastikan kata "termuda" atau "muda" selalu dipetakan ke ORDER BY Tanggal_Lahir DESC. Jangan pernah menggunakan ASC untuk kata "termuda" atau "muda"!
+- ATURAN RENTANG WAKTU & TANGGAL: JANGAN PERNAH membatasi kueri dengan rentang tanggal atau tahun tertentu (seperti `a.Tanggal BETWEEN '2023-01-01' AND '2023-12-31'`) KECUALI pengguna secara eksplisit menyebutkan tahun atau rentang waktu spesifik di dalam pertanyaannya. Jika tidak ada penyebutan waktu, biarkan query berjalan tanpa filter tanggal.
+- ATURAN FILTER HIERARKI PERTANYAAN (TARGET SELECT):
+  * Jika ditanya "divisi apa" atau "bidang apa", kolom yang di-SELECT haruslah kolom `Divisi` (misalnya `SELECT k.Divisi ...`). JANGAN men-SELECT `Nama` jika yang ditanya adalah `Divisi`.
+  * Jika ditanya "siapa" atau "nama", kolom yang di-SELECT haruslah kolom `Nama` (misalnya `SELECT k.Nama ...`).
+  * Jika ditanya "jabatan apa", kolom yang di-SELECT haruslah kolom `Jabatan` (misalnya `SELECT k.Jabatan ...`).
+- ATURAN LOGIKA KINERJA & KEHADIRAN (RAJIN vs MALAS):
+  * Karyawan/divisi "paling rajin" atau "kehadiran terbanyak" dihitung berdasarkan jumlah kehadiran tertinggi: filter `WHERE a.Status = 'Masuk'`, kelompokkan dengan `GROUP BY`, dan urutkan dengan `ORDER BY COUNT(*) DESC LIMIT 1`.
+  * Karyawan/divisi "paling malas" atau "paling sering absen" dihitung berdasarkan jumlah ketidakhadiran tertinggi: filter `WHERE a.Status = 'Tidak'`, kelompokkan dengan `GROUP BY`, dan urutkan dengan `ORDER BY COUNT(*) DESC LIMIT 1`.
 - ATURAN RELASI TABEL (JOIN KEYS): Hubungkan customers ke orders pada customerNumber; orders ke orderdetails pada orderNumber; orderdetails ke products pada productCode; payments ke customers pada customerNumber.
 - ATURAN PENGURUTAN & BATASAN: Gunakan ORDER BY (ASC/DESC) dan LIMIT untuk pertanyaan yang menanyakan "terbanyak", "tertinggi", "terlama", "paling", atau "ter-". Gunakan GROUP BY saat mengumpulkan data per divisi, jabatan, atau negara.
+- ATURAN PERHITUNGAN PERSENTASE: Saat melakukan perhitungan persentase dari suatu kondisi terhadap seluruh data (contoh: persentase tidak masuk dari keseluruhan absensi), pembilang WAJIB dikalikan dengan angka desimal 100.0 terlebih dahulu sebelum dibagi oleh pembagi (contoh: `(SUM(CASE WHEN Status = 'Tidak' THEN 1 ELSE 0 END) * 100.0) / COUNT(*)`). PENTING: JANGAN PERNAH menambahkan klausa `WHERE` yang menyaring kondisi tersebut (seperti `WHERE Status = 'Tidak'`) karena akan menyaring baris penyebut (`COUNT(*)`) sehingga hasil pembagian akan selalu menjadi 100%.
 - Untuk pencarian teks gunakan LIKE '%kata%'.
+
+
 - Jawab HANYA dengan query SQL, tanpa penjelasan, tanpa markdown, tanda kutip pembungkus.
 - Query harus diakhiri dengan titik koma.
 
@@ -534,10 +558,13 @@ Pertanyaan: berapa jumlah karyawan?
 SQL: SELECT COUNT(*) AS total FROM karyawan_pln.karyawan_pln;
 
 Pertanyaan: siapa saja karyawan di divisi Keuangan?
-SQL: SELECT nama, jabatan FROM karyawan_pln.karyawan_pln WHERE divisi = 'Keuangan';
+SQL: SELECT Nama, Jabatan FROM karyawan_pln.karyawan_pln WHERE Divisi = 'Keuangan';
+
+Pertanyaan: ada bidang apa saja di pln?
+SQL: SELECT DISTINCT Divisi FROM karyawan_pln.karyawan_pln;
 
 Pertanyaan: berapa banyak karyawan perempuan?
-SQL: SELECT COUNT(*) AS total FROM karyawan_pln.karyawan_pln WHERE jenis_kelamin = 'P';
+SQL: SELECT COUNT(*) AS total FROM karyawan_pln.karyawan_pln WHERE Jenis_Kelamin = 'P';
 
 Pertanyaan: siapa saja customer dari Prancis?
 SQL: SELECT customerName, city FROM classicmodels.customers WHERE country = 'France';
@@ -549,7 +576,26 @@ Pertanyaan: berapa jumlah karyawan yang masuk (hadir) pada tanggal 2026-08-04?
 SQL: SELECT COUNT(*) AS total FROM karyawan_pln.absensi WHERE Tanggal = '2026-08-04' AND Status = 'Masuk';
 
 Pertanyaan: siapa saja karyawan divisi IT yang tidak masuk pada tanggal 2026-08-04?
-SQL: SELECT k.nama FROM karyawan_pln.karyawan_pln k JOIN karyawan_pln.absensi a ON k.nip = a.NIP WHERE k.divisi = 'IT' AND a.Tanggal = '2026-08-04' AND a.Status = 'Tidak';
+SQL: SELECT k.Nama FROM karyawan_pln.karyawan_pln k JOIN karyawan_pln.absensi a ON k.NIP = a.NIP WHERE k.Divisi = 'IT' AND a.Tanggal = '2026-08-04' AND a.Status = 'Tidak';
+
+Pertanyaan: siapa saja karyawan yang tidak masuk?
+SQL: SELECT k.Nama FROM karyawan_pln.karyawan_pln k JOIN karyawan_pln.absensi a ON k.NIP = a.NIP WHERE a.Status = 'Tidak';
+
+Pertanyaan: siapa saja nama karyawan yang tidak masuk keseluruhan?
+SQL: SELECT DISTINCT k.Nama FROM karyawan_pln.karyawan_pln k JOIN karyawan_pln.absensi a ON k.NIP = a.NIP WHERE a.Status = 'Tidak';
+
+Pertanyaan: berapa persen karyawan yang ga masuk keseluruhan?
+SQL: SELECT (SUM(CASE WHEN Status = 'Tidak' THEN 1 ELSE 0 END) * 100.0) / COUNT(*) AS absent_percentage FROM karyawan_pln.absensi;
+
+Pertanyaan: berapa persen karyawan yang masuk keseluruhan?
+SQL: SELECT (SUM(CASE WHEN Status = 'Masuk' THEN 1 ELSE 0 END) * 100.0) / COUNT(*) AS present_percentage FROM karyawan_pln.absensi;
+
+
+Pertanyaan: divisi yang paling rajin apa?
+SQL: SELECT k.Divisi, COUNT(*) AS jumlah FROM karyawan_pln.karyawan_pln k JOIN karyawan_pln.absensi a ON k.NIP = a.NIP WHERE a.Status = 'Masuk' GROUP BY k.Divisi ORDER BY jumlah DESC LIMIT 1;
+
+Pertanyaan: siapa karyawan paling malas?
+SQL: SELECT k.Nama, COUNT(*) AS jumlah FROM karyawan_pln.karyawan_pln k JOIN karyawan_pln.absensi a ON k.NIP = a.NIP WHERE a.Status = 'Tidak' GROUP BY k.NIP, k.Nama ORDER BY jumlah DESC LIMIT 1;
 
 Pertanyaan: produk apa yang paling laris terjual?
 SQL: SELECT p.productName, SUM(od.quantityOrdered) AS total_ordered FROM classicmodels.products p JOIN classicmodels.orderdetails od ON p.productCode = od.productCode GROUP BY p.productCode, p.productName ORDER BY total_ordered DESC LIMIT 1;
@@ -562,6 +608,24 @@ SQL: SELECT p.paymentDate, c.customerName FROM classicmodels.payments p JOIN cla
 
 Pertanyaan: siapa saja customer yang membayar terbanyak dan berapa jumlahnya?
 SQL: SELECT c.customerName, SUM(p.amount) AS total_payment FROM classicmodels.customers c JOIN classicmodels.payments p ON c.customerNumber = p.customerNumber GROUP BY c.customerName ORDER BY total_payment DESC LIMIT 5;
+
+Pertanyaan: siapa karyawan tertua?
+SQL: SELECT Nama, TIMESTAMPDIFF(YEAR, Tanggal_Lahir, CURDATE()) AS Umur FROM karyawan_pln.karyawan_pln ORDER BY Tanggal_Lahir ASC LIMIT 1;
+
+Pertanyaan: karyawan tertua siapa?
+SQL: SELECT Nama, TIMESTAMPDIFF(YEAR, Tanggal_Lahir, CURDATE()) AS Umur FROM karyawan_pln.karyawan_pln ORDER BY Tanggal_Lahir ASC LIMIT 1;
+
+Pertanyaan: siapa saja karyawan tertua?
+SQL: SELECT Nama FROM karyawan_pln.karyawan_pln ORDER BY Tanggal_Lahir ASC LIMIT 1;
+
+Pertanyaan: siapa karyawan termuda?
+SQL: SELECT Nama, TIMESTAMPDIFF(YEAR, Tanggal_Lahir, CURDATE()) AS Umur FROM karyawan_pln.karyawan_pln ORDER BY Tanggal_Lahir DESC LIMIT 1;
+
+Pertanyaan: karyawan termuda siapa?
+SQL: SELECT Nama, TIMESTAMPDIFF(YEAR, Tanggal_Lahir, CURDATE()) AS Umur FROM karyawan_pln.karyawan_pln ORDER BY Tanggal_Lahir DESC LIMIT 1;
+
+Pertanyaan: siapa saja nama karyawan termuda?
+SQL: SELECT Nama FROM karyawan_pln.karyawan_pln ORDER BY Tanggal_Lahir DESC LIMIT 1;
 
 Pertanyaan: {question}
 SQL:"""
@@ -1030,4 +1094,5 @@ def chat_endpoint(request: ChatRequest):
 
 if __name__ == "__main__":
     import uvicorn
+    # Trigger uvicorn reload to load updated env values
     uvicorn.run("main:app", host="127.0.0.1", port=8000, reload=True)
