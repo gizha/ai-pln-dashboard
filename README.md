@@ -1,6 +1,6 @@
 # PLN DataHub AI
 
-PLN DataHub AI adalah project dashboard dan chatbot berbasis AI untuk mengeksplorasi data database PLN secara interaktif. Project ini menggabungkan frontend web, backend FastAPI, serta integrasi LLM untuk mengubah pertanyaan natural language menjadi query SQL dan jawaban data yang lebih mudah dipahami.
+PLN DataHub AI adalah proyek dashboard dan chatbot berbasis AI untuk mengeksplorasi data karyawan dan customer secara interaktif. Proyek ini menggabungkan frontend web, backend FastAPI, integrasi LLM (Gemini/Ollama), dan fallback SQLite untuk mode offline.
 
 ## Fitur Utama
 
@@ -23,6 +23,13 @@ PLN DataHub AI adalah project dashboard dan chatbot berbasis AI untuk mengeksplo
 - AI Integration:
   - Gemini API
   - Ollama
+- Backend: Python, FastAPI, Uvicorn
+- Database:
+  - MySQL / MariaDB (utama)
+  - SQLite (fallback) — file `separated_app/backend/local_fallback.db`
+- AI Integration:
+  - Gemini API (cloud)
+  - Ollama (cloud & lokal)
 
 ## Project Structure
 
@@ -67,7 +74,7 @@ pip install -r requirements.txt
 
 ### 4. Setup Environment Variables
 
-Buat file `.env` di folder `separated_app/backend` dengan isi berikut:
+Buat file `.env` di folder `separated_app/backend` dengan variabel berikut (sesuaikan nilai):
 
 ```env
 GEMINI_API_KEY=your_gemini_api_key
@@ -76,26 +83,42 @@ DB_USER=root
 DB_PASSWORD=your_db_password
 DB_NAME=railway
 DB_PORT=3306
-OLLAMA_HOST=http://127.0.0.1:11434
-OLLAMA_MODEL=qwen2.5:7b-instruct
+OLLAMA_CLOUD_API_KEY=your_ollama_cloud_api_key
+OLLAMA_CLOUD_HOST=https://ollama.com
+OLLAMA_CLOUD_MODEL=gpt-oss:20b
+OLLAMA_LOCAL_HOST=http://127.0.0.1:11434
+OLLAMA_LOCAL_MODEL=qwen2.5:7b-instruct
 ```
 
-> Jangan commit file `.env` ke GitHub. Gunakan `.gitignore` untuk menghindari penyimpanan secret key dan file sensitif.
+Catatan:
+- Nama variabel harus sesuai dengan yang dipakai di backend (`GEMINI_API_KEY`, `DB_*`, `OLLAMA_CLOUD_*`, `OLLAMA_LOCAL_*`).
+- Jangan commit file `.env` ke GitHub. Tambahkan `.env` ke `.gitignore`.
 
 ### 5. Jalankan Backend
 
 ```bash
 cd separated_app/backend
+python -m venv .venv
+.venv\Scripts\activate
+pip install -r requirements.txt
 uvicorn main:app --reload --host 0.0.0.0 --port 8000
 ```
 
 ### 6. Jalankan Frontend
 
-Buka folder frontend lalu jalankan file `index.html` melalui browser lokal, atau gunakan server statis sederhana jika diperlukan.
+Buka `separated_app/frontend/index.html` di browser, atau jalankan server statis singkat mis.:
 
-## Deployment Notes
+```bash
+# dari folder separated_app/frontend
+python -m http.server 5500
+# lalu buka http://127.0.0.1:5500
+```
 
-Project ini bisa diadaptasi untuk deployment ke layanan cloud seperti Railway, Render, atau platform hosting lain yang mendukung FastAPI.
+## Notes & Deployment
+
+- Proyek menyertakan fallback SQLite (`local_fallback.db`) sehingga fitur dasar dapat berjalan tanpa MySQL.
+- Untuk production, simpan credential di environment variables pada platform deployment (Railway, Render, Heroku, dsb.).
+- Pastikan tidak meng-commit file database berisi data sensitif pada repositori publik.
 
 ## Security Reminder
 
@@ -105,4 +128,4 @@ Project ini bisa diadaptasi untuk deployment ke layanan cloud seperti Railway, R
 
 ## License
 
-Project ini dibuat untuk kebutuhan demo dan pengembangan internal. Silakan sesuaikan lisensi jika ingin dipublikasikan secara luas.
+Proyek ini dibuat untuk demo dan pengembangan internal. Sesuaikan lisensi bila ingin dipublikasikan.
